@@ -9,6 +9,10 @@
  *
  * @author xhinliang
  */
+
+
+namespace XhinLiang;
+
 class CUrlGet
 {
     const RETRY_TIME = 3;

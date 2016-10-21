@@ -1,5 +1,7 @@
 <?php
 
+namespace XhinLiang;
+
 class MultiDownload
 {
     private $urls;
