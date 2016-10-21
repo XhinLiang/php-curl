@@ -11,7 +11,7 @@
  */
 
 
-namespace XhinLiang;
+namespace Curl;
 
 class CUrlGet
 {
