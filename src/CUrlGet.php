@@ -146,7 +146,7 @@ class CUrlGet
                 throw new Exception($message = curl_multi_strerror($status), $code = $status);
             */
             //# 解决 CPU 占用率过高的问题 @from php.net
-            //curl_multi_select($mh);
+            curl_multi_select($mh);
             curl_multi_exec($mh, $running);
         } while ($running > 0);
 
