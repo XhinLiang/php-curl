@@ -5,7 +5,7 @@ namespace CUrl;
 class MultiDownload
 {
     private $urls;
-    private $save_to = './downloads/';
+    private $saveTo = './downloads/';
     private $conn = array();
     private $fp = array();
     private $handle;
@@ -22,7 +22,10 @@ class MultiDownload
      */
     public function setSavePath($path)
     {
-        $this->save_to = $path;
+        if (substr($path, -1) != '/') {
+            $path .= '/';
+        }
+        $this->saveTo = $path;
     }
 
     /**
@@ -54,9 +57,9 @@ class MultiDownload
     private function _prepare()
     {
         foreach ($this->urls as $i => $url) {
-            $save_file = $this->save_to . basename($url);
+            $saveFile = $this->saveTo . basename($url);
             $this->conn[$i] = curl_init($url);
-            $this->fp[$i] = fopen($save_file, "wb");
+            $this->fp[$i] = fopen($saveFile, "wb");
             curl_setopt($this->conn[$i], CURLOPT_SSL_VERIFYPEER, FALSE);    // No certificate
             curl_setopt($this->conn[$i], CURLOPT_FOLLOWLOCATION, TRUE);
             curl_setopt($this->conn[$i], CURLOPT_FILE, $this->fp[$i]);

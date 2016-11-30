@@ -1,7 +1,7 @@
 {
     "name": "xhinliang/php-curl",
     "type": "library",
-    "description": "curl client for PHP 5.3",
+    "description": "cURL client for PHP 5.3",
     "keywords": [
         "curl",
         "client"
@@ -14,9 +14,8 @@
         "homepage": "http://xhinliang.win"
     }],
     "autoload-dev": {
-        "classmap": [
-            "tests/TestCase.php"
-        ]
+        "psr-4": {
+        }
     },
     "autoload": {
         "psr-4": {

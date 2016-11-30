@@ -100,7 +100,7 @@ class CUrlFetcher
      * @param $queryArray
      * @param array $headers
      * @param array $options
-     * @return string cUrl result
+     * @return string cURL result
      * @throws Exception
      */
     public function get($url, $queryArray = array(), $headers = array(), $options = array())
@@ -117,14 +117,19 @@ class CUrlFetcher
         curl_setopt($ch, CURLOPT_URL, $this->buildUrl($url, $queryArray));
 
         $times = 0;
+        $httpcode = 233;
         while ($times++ < self::RETRY_TIME) {
             $response = curl_exec($ch);
+            $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($httpcode >= 400) {
+                continue;
+            }
             if (!curl_errno($ch)) {
                 curl_close($ch);
                 return $response;
             }
         }
-        $e = new Exception($message = curl_error($ch), $code = curl_errno($ch));
+        $e = new Exception($message = 'Message: '. curl_error($ch). " , HTTP code: $httpcode", $code = $httpcode);
         curl_close($ch);
         throw  $e;
     }
@@ -283,25 +288,31 @@ class CUrlFetcher
      */
     public function post($url, $params = array(), $headers =array() , $options = array())
     {
+        $mergeHeaders = array_merge($this->defaultHeaders, $headers);
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->useRandomAgent ? $this->getRandomAgent() : $this->randomAgents[0]);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+        curl_setopt($ch, CURLOPT_POST, true);
+
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->useRandomAgent ? $this->getRandomAgent() : $this->randomAgents[0]);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $mergeHeaders);
+        curl_setopt_array($ch, $this->defaultOptions);
         curl_setopt_array($ch, $this->options);
         curl_setopt_array($ch, $options);
         $times = 0;
+        $httpcode = 233;
         while ($times++ < self::RETRY_TIME) {
             $response = curl_exec($ch);
+            $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($httpcode >= 400) {
+                continue;
+            }
             if (!curl_errno($ch)) {
                 curl_close($ch);
                 return $response;
             }
         }
-        $e = new Exception($message = 'POST 内容失败： ' . curl_error($ch), $code = curl_errno($ch));
+        $e = new Exception($message = 'POST ERROR: ' . curl_error($ch) . " , Code: $httpcode", $code = $httpcode);
         curl_close($ch);
         throw  $e;
     }
