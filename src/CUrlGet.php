@@ -1,23 +1,22 @@
 <?php
+
 /**
  * cURL 的封装类
  *
  * ## Simple Single Sample
  *
- * $fetcher = new CUrlGet();
+ * $fetcher = new CUrlFetcher();
  * $result = $fetcher->fetch('www.qq.com', array('queryKey' => 'queryValue'));
  *
  * @author xhinliang
  */
-
-
-namespace Curl;
-
-class CUrlGet
+class CUrlFetcher
 {
     const RETRY_TIME = 3;
 
-    # 预置的随机 ua
+    /**
+     * 预置的随机 ua
+     */
     private $randomAgents = array(
         'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.130 Safari/537.36',
         'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36',
@@ -30,7 +29,25 @@ class CUrlGet
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/600.8.9 (KHTML, like Gecko) Version/9.1.1 Safari/601.6.17',
     );
 
+    /**
+     * 默认的 cURL 参数
+     */
+    private $defaultOptions = array(
+        CURLOPT_HEADER => 0,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_AUTOREFERER => true,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSLVERSION => 3,
+        CURLOPT_CAPATH => '/etc/ssl/certs/ca-bundle.crt',
+    );
 
+    /**
+     * 默认 HTTP 头
+     */
     private $defaultHeaders = array(
         'Connection: keep-alive',
         'Cache-Control:max-age=0',
@@ -38,10 +55,16 @@ class CUrlGet
         'Accept-Language: zh-CN,zh;q=0.8',
         'Upgrade-Insecure-Requests: 1',
     );
+
+    /**
+     * @var bool 是否使用随机的 UA
+     */
     private $useRandomAgent = true;
 
     /**
-     * CurlFetcher constructor.
+     * CUrlGet constructor.
+     *
+     * @author xhinliang
      * @param bool $useRandomAgent
      * @param array $options
      */
@@ -63,6 +86,7 @@ class CUrlGet
         return $this->randomAgents[$roll];
     }
 
+
     /**
      * 发起 GET 请求，并返回
      *
@@ -73,7 +97,7 @@ class CUrlGet
      * @return string cUrl result
      * @throws Exception
      */
-    public function fetch($url, $queryArray = array(), $headers = array(), $options = array())
+    public function get($url, $queryArray = array(), $headers = array(), $options = array())
     {
         $headers = array_merge($this->defaultHeaders, $headers);
         # 初始化会话
@@ -109,11 +133,11 @@ class CUrlGet
      * @param array $optionsArray 对于这次多线程抓取，对每个句柄单独设置 CURLOPT，通常使用在每个句柄单独设置 COOKIE的情况
      *                            这个array 的长度必须跟queryArrayArray一致！！！！
      * @return array 没有 key，$queryArrayArray 中含有几个元素，则返回的数组中就有多少个元素
-     * @throws Exception 访问错误时抛出的错误，目前无法正确处理错误码
+     * @throws \Exception 访问错误时抛出的错误，目前无法正确处理错误码
      *
      * @author xhinliang
      */
-    public function fetchMulti($url, $queryArrayArray, $headers = array(), $optionsArray = null)
+    public function getMulti($url, $queryArrayArray, $headers = array(), $optionsArray = null)
     {
         $result = array();
         $headers = array_merge($this->defaultHeaders, $headers);
@@ -145,8 +169,10 @@ class CUrlGet
             if ($status !== CURLE_OK)
                 throw new Exception($message = curl_multi_strerror($status), $code = $status);
             */
-            //# 解决 CPU 占用率过高的问题 @from php.net
+
+            # 解决 CPU 占用率过高的问题 @from php.net
             curl_multi_select($mh);
+
             curl_multi_exec($mh, $running);
         } while ($running > 0);
 
@@ -158,26 +184,13 @@ class CUrlGet
         }
 
         curl_multi_close($mh);
-        if (count($result) === count($queryArrayArray))
+        if (count($result) === count($queryArrayArray)) {
             return $result;
+        }
         throw new Exception('unknown error', -1);
     }
 
-    /**
-     * 默认的 cURL 参数
-     */
-    private $defaultOptions = array(
-        CURLOPT_HEADER => 0,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_AUTOREFERER => true,
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSLVERSION => 3,
-        CURLOPT_CAPATH => '/etc/ssl/certs/ca-bundle.crt',
-    );
+
 
     /**
      * 重新构建url
@@ -236,6 +249,59 @@ class CUrlGet
             }
         }
         $e = new Exception($message = '获取新的cookie失败 message: ' . curl_error($ch), $code = curl_errno($ch));
+        curl_close($ch);
+        throw  $e;
+    }
+
+    /**
+     * 发起一个 POST 请求
+     *
+     * ****************** sample **********************
+     *
+     *   // 准备好 POST 需要的参数
+     *   if (function_exists('curl_file_create')) { // php 5.6+
+     *       $cFile = curl_file_create($filePath);
+     *   } else {
+     *       $cFile = '@' . realpath($filePath);
+     *   }
+     *   $params = array(
+     *       'param1' => 'hehe',
+     *       'file' => $cFile,
+     *   );
+     *   $fetcher = new CUrlFetcher();
+     *   $response = $fetcher->post(self::UPLOAD_URL, $params);
+     *
+     * ****************** sample **********************
+     *
+     * @author xhinliang
+     * @param string $url
+     * @param array $params
+     * @param array $headers
+     * @param array $options
+     * @return string
+     * @throws Exception
+     */
+    public function post($url, $params = array(), $headers =array() , $options = array())
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->useRandomAgent ? $this->getRandomAgent() : $this->randomAgents[0]);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+        curl_setopt_array($ch, $this->options);
+        curl_setopt_array($ch, $options);
+        $times = 0;
+        while ($times++ < self::RETRY_TIME) {
+            $response = curl_exec($ch);
+            if (!curl_errno($ch)) {
+                curl_close($ch);
+                return $response;
+            }
+        }
+        $e = new Exception($message = 'POST 内容失败： ' . curl_error($ch), $code = curl_errno($ch));
         curl_close($ch);
         throw  $e;
     }
