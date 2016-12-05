@@ -288,15 +288,14 @@ class CUrlFetcher
      */
     public function post($url, $params = array(), $headers =array() , $options = array())
     {
-        $mergeHeaders = array_merge($this->defaultHeaders, $headers);
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
         curl_setopt($ch, CURLOPT_POST, true);
-
         curl_setopt($ch, CURLOPT_USERAGENT, $this->useRandomAgent ? $this->getRandomAgent() : $this->randomAgents[0]);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $mergeHeaders);
-        curl_setopt_array($ch, $this->defaultOptions);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
         curl_setopt_array($ch, $this->options);
         curl_setopt_array($ch, $options);
         $times = 0;
@@ -304,12 +303,12 @@ class CUrlFetcher
         while ($times++ < self::RETRY_TIME) {
             $response = curl_exec($ch);
             $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            if ($httpcode >= 400) {
-                continue;
-            }
             if (!curl_errno($ch)) {
                 curl_close($ch);
                 return $response;
+            }
+            if ($httpcode >= 400) {
+                continue;
             }
         }
         $e = new Exception($message = 'POST ERROR: ' . curl_error($ch) . " , Code: $httpcode", $code = $httpcode);
