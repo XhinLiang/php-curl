@@ -1,6 +1,9 @@
 # PHP-cURL
 
-### CUrlFetcher
+### Install
+```
+composer require xhinliang/php-curl
+```
 
 #### constructor
 ```
