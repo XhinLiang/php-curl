@@ -118,18 +118,22 @@ class CUrlFetcher
 
         $times = 0;
         $httpcode = 233;
+        $errno = 0;
         while ($times++ < self::RETRY_TIME) {
             $response = curl_exec($ch);
             $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            if ($httpcode >= 400) {
+            $errno = curl_errno($ch);
+            // 服务器给出异常的状态码，或者 CURL 出现异常，再来一次吧
+            if ($httpcode >= 300 || $errno) {
                 continue;
             }
-            if (!curl_errno($ch)) {
-                curl_close($ch);
-                return $response;
-            }
+            return $response;
         }
-        $e = new Exception($message = 'Message: '. curl_error($ch). " , HTTP code: $httpcode", $code = $httpcode);
+        if ($errno) {
+            $e = new Exception($message = 'POST ERROR: ' . curl_strerror($errno) . " , Error No: $errno", $code = $errno);
+        } else {
+            $e = new Exception($message = "POST ERROR , Code: $httpcode", $code = $httpcode);
+        }
         curl_close($ch);
         throw  $e;
     }
@@ -300,18 +304,22 @@ class CUrlFetcher
         curl_setopt_array($ch, $options);
         $times = 0;
         $httpcode = 233;
+        $errno = 0;
         while ($times++ < self::RETRY_TIME) {
             $response = curl_exec($ch);
             $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            if (!curl_errno($ch)) {
-                curl_close($ch);
-                return $response;
-            }
-            if ($httpcode >= 400) {
+            $errno = curl_errno($ch);
+            // 服务器给出异常的状态码，或者 CURL 出现异常，再来一次吧
+            if ($httpcode >= 300 || $errno) {
                 continue;
             }
+            return $response;
         }
-        $e = new Exception($message = 'POST ERROR: ' . curl_error($ch) . " , Code: $httpcode", $code = $httpcode);
+        if ($errno) {
+            $e = new Exception($message = 'POST ERROR: ' . curl_strerror($errno) . " , Error No: $errno", $code = $errno);
+        } else {
+            $e = new Exception($message = "POST ERROR , Code: $httpcode", $code = $httpcode);
+        }
         curl_close($ch);
         throw  $e;
     }
