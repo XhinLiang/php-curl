@@ -8,7 +8,7 @@ composer require xhinliang/php-curl
 #### constructor
 ```
 // options
-$fetcher = new CUrlFetcher(true, array(
+$fetcher = new Curl/CUrlGet(true, array(
     CURLOPT_SSL_VERIFYPEER => true,
     CURLOPT_CAPATH => '/etc/ssl/certs/',
 ));
